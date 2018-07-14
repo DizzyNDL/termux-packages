@@ -21,7 +21,7 @@ termux_step_make_install(){
 
   $GOPATH/bin/dep ensure -vendor-only
 
-	export CGO_LDFLAGS="-L$TERMUX_PREFIX/lib"
+  export CGO_LDFLAGS="-L$TERMUX_PREFIX/lib"
   export CGO_ENABLED=1
 
   go build -ldflags="-s -w" -o $TERMUX_PREFIX/bin/hugo -tags extended main.go
