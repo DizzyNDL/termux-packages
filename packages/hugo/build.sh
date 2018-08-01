@@ -1,8 +1,8 @@
 TERMUX_PKG_HOMEPAGE=https://gohugo.io/
 TERMUX_PKG_DESCRIPTION="Configurable static site generator"
 TERMUX_PKG_MAINTAINER="Florian Grässle <termux@holehan.org>"
-TERMUX_PKG_VERSION=0.45.1
-TERMUX_PKG_SHA256=4d8be74015fcc0be56d7a1d719b8b4900973e1e8ad4da9c9867c4c003f95ccfc
+TERMUX_PKG_VERSION=0.46
+TERMUX_PKG_SHA256=3cb167e24bdbb2362415aba4b1be301596276b4ff565116cb81df95bdfc50c0a
 TERMUX_PKG_SRCURL=https://github.com/gohugoio/hugo/archive/v${TERMUX_PKG_VERSION}.tar.gz
 
 termux_step_make_install(){
@@ -28,7 +28,7 @@ termux_step_make_install(){
 
   termux_download https://github.com/gohugoio/hugo/releases/download/v${TERMUX_PKG_VERSION}/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz \
     $TERMUX_PKG_CACHEDIR/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz \
-    4898dc26e635db7396b226301a7a61d62c73ec4ab488bb5bf473901ccf1518cd
+    6df4c38800a381053c9d3971bacde132ee486d5349a0a081d6eb9b8c4e9790ba
   tar xf $TERMUX_PKG_CACHEDIR/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz -C $GOPATH/bin/ hugo
 
   mkdir -p $TERMUX_PREFIX/{etc/bash_completion.d,share/man/man1}
