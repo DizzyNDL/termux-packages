@@ -2,6 +2,7 @@ TERMUX_PKG_HOMEPAGE=https://gohugo.io/
 TERMUX_PKG_DESCRIPTION="Configurable static site generator"
 TERMUX_PKG_MAINTAINER="Florian Grässle <termux@holehan.org>"
 TERMUX_PKG_VERSION=0.47.1
+TERMUX_PKG_REVISION=1
 TERMUX_PKG_SHA256=1c47fef843812c5e2621f28bde445117bc90413e3221f72800512ed82db94c5f
 TERMUX_PKG_SRCURL=https://github.com/gohugoio/hugo/archive/v${TERMUX_PKG_VERSION}.tar.gz
 
