@@ -12,11 +12,11 @@ termux_step_make_install(){
   export CGO_ENABLED=1
   
   BUILD_DATE=`date -u "+%Y-%m-%dT%H:%M:%S"`
-  LDFLAGS="-w -s -X github.com/gohugoio/hugo/hugolib.BuildDate=$BUILD_DATE"
-
+  GO_LDFLAGS="-w -s -X github.com/gohugoio/hugo/hugolib.BuildDate=$BUILD_DATE"
+  
   cd $TERMUX_PKG_SRCDIR
   
-  go build -ldflags="$LDFLAGS" -o $TERMUX_PREFIX/bin/hugo -tags extended main.go
+  go build -ldflags="$GO_LDFLAGS" -o $TERMUX_PREFIX/bin/hugo -tags extended main.go
 
   termux_download https://github.com/gohugoio/hugo/releases/download/v${TERMUX_PKG_VERSION}/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz \
     $TERMUX_PKG_CACHEDIR/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz \
