@@ -95,6 +95,25 @@ termux_setup_golang() {
 	( cd "$TERMUX_COMMON_CACHEDIR"; tar xf "$TERMUX_BUILDGO_TAR"; mv go "$TERMUX_BUILDGO_FOLDER"; rm "$TERMUX_BUILDGO_TAR" )
 }
 
+# Utility function for rust-using packages to setup a rust toolchain.
+termux_setup_rust() {
+	if [ $TERMUX_ARCH = "arm" ]; then
+		CARGO_TARGET_NAME=armv7-linux-androideabi
+	else
+		CARGO_TARGET_NAME=$TERMUX_ARCH-linux-android
+	fi
+
+	local ENV_NAME=CARGO_TARGET_${CARGO_TARGET_NAME^^}_LINKER
+	ENV_NAME=${ENV_NAME//-/_}
+	export $ENV_NAME=$CC
+
+	curl https://sh.rustup.rs -sSf > $TERMUX_PKG_TMPDIR/rustup.sh
+	sh $TERMUX_PKG_TMPDIR/rustup.sh -y
+	export PATH=$HOME/.cargo/bin:$PATH
+
+	rustup target add $CARGO_TARGET_NAME
+}
+
 # Utility function to setup a current ninja build system.
 termux_setup_ninja() {
 	local NINJA_VERSION=1.8.2
@@ -168,7 +187,7 @@ termux_setup_meson() {
 # Utility function to setup a current cmake build system
 termux_setup_cmake() {
 	local TERMUX_CMAKE_MAJORVESION=3.12
-	local TERMUX_CMAKE_MINORVERSION=1
+	local TERMUX_CMAKE_MINORVERSION=2
 	local TERMUX_CMAKE_VERSION=$TERMUX_CMAKE_MAJORVESION.$TERMUX_CMAKE_MINORVERSION
 	local TERMUX_CMAKE_TARNAME=cmake-${TERMUX_CMAKE_VERSION}-Linux-x86_64.tar.gz
 	local TERMUX_CMAKE_TARFILE=$TERMUX_PKG_TMPDIR/$TERMUX_CMAKE_TARNAME
@@ -176,7 +195,7 @@ termux_setup_cmake() {
 	if [ ! -d "$TERMUX_CMAKE_FOLDER" ]; then
 		termux_download https://cmake.org/files/v$TERMUX_CMAKE_MAJORVESION/$TERMUX_CMAKE_TARNAME \
 		                "$TERMUX_CMAKE_TARFILE" \
-				f4c5caeed9841029895cfb5b1d71e77ea71949ac85737cbbc3a70c12df28854c
+				5bd6e37590b929e26e67fbbff1278e77858ab40430f103ea20a9928435e64662
 		rm -Rf "$TERMUX_PKG_TMPDIR/cmake-${TERMUX_CMAKE_VERSION}-Linux-x86_64"
 		tar xf "$TERMUX_CMAKE_TARFILE" -C "$TERMUX_PKG_TMPDIR"
 		mv "$TERMUX_PKG_TMPDIR/cmake-${TERMUX_CMAKE_VERSION}-Linux-x86_64" \
@@ -193,25 +212,27 @@ termux_step_handle_arguments() {
 
 	# Handle command-line arguments:
 	_show_usage () {
-	    echo "Usage: ./build-package.sh [-a ARCH] [-d] [-D] [-f] [-q] [-s] PACKAGE"
+	    echo "Usage: ./build-package.sh [-a ARCH] [-d] [-D] [-f] [-q] [-s] [-o DIR] PACKAGE"
 	    echo "Build a package by creating a .deb file in the debs/ folder."
 	    echo "  -a The architecture to build for: aarch64(default), arm, i686, x86_64 or all."
 	    echo "  -d Build with debug symbols."
 	    echo "  -D Build a disabled package in disabled-packages/."
 	    echo "  -f Force build even if package has already been built."
-	    echo "  -q Quiet build"
+	    echo "  -q Quiet build."
 	    echo "  -s Skip dependency check."
+	    echo "  -o Specify deb directory. Default: debs/."
 	    exit 1
 	}
-	while getopts :a:hdDfqs option; do
+	while getopts :a:hdDfqso: option; do
 		case "$option" in
 		a) TERMUX_ARCH="$OPTARG";;
 		h) _show_usage;;
-		d) TERMUX_DEBUG=true;;
+		d) export TERMUX_DEBUG=true;;
 		D) local TERMUX_IS_DISABLED=true;;
 		f) TERMUX_FORCE_BUILD=true;;
 		q) export TERMUX_QUIET_BUILD=true;;
 		s) export TERMUX_SKIP_DEPCHECK=true;;
+		o) TERMUX_DEBDIR="$(realpath -m $OPTARG)";;
 		?) termux_error_exit "./build-package.sh: illegal option -$OPTARG";;
 		esac
 	done
@@ -223,7 +244,8 @@ termux_step_handle_arguments() {
 	# Handle 'all' arch:
 	if [ -n "${TERMUX_ARCH+x}" ] && [ "${TERMUX_ARCH}" = 'all' ]; then
 		for arch in 'aarch64' 'arm' 'i686' 'x86_64'; do
-			./build-package.sh ${TERMUX_FORCE_BUILD+-f} -a $arch "$1"
+			./build-package.sh ${TERMUX_FORCE_BUILD+-f} -a $arch \
+				${TERMUX_DEBUG+-d} ${TERMUX_DEBDIR+-o $TERMUX_DEBDIR} "$1"
 		done
 		exit
 	fi
@@ -330,7 +352,6 @@ termux_step_setup_variables() {
 	# Set if a host build should be done in TERMUX_PKG_HOSTBUILD_DIR:
 	TERMUX_PKG_HOSTBUILD=""
 	TERMUX_PKG_MAINTAINER="Fredrik Fornwall @fornwall"
-	TERMUX_PKG_CLANG=yes # does nothing for cmake based packages. clang is chosen by cmake
 	TERMUX_PKG_FORCE_CMAKE=no # if the package has autotools as well as cmake, then set this to prefer cmake
 	TERMUX_CMAKE_BUILD=Ninja # Which cmake generator to use
 	TERMUX_PKG_HAS_DEBUG=yes # set to no if debug build doesn't exist or doesn't work, for example for python based packages
@@ -388,6 +409,7 @@ termux_step_start_build() {
 		TERMUX_ALL_DEPS=$(./scripts/buildorder.py "$TERMUX_PKG_BUILDER_DIR")
 		for p in $TERMUX_ALL_DEPS; do
 			echo "Building dependency $p if necessary..."
+			# Built dependencies are put in the default TERMUX_DEBDIR instead of the specified one
 			./build-package.sh -a $TERMUX_ARCH -s "$p"
 		done
 	fi
@@ -558,17 +580,9 @@ termux_step_setup_toolchain() {
 	export CFLAGS=""
 	export LDFLAGS="-L${TERMUX_PREFIX}/lib"
 
-	if [ "$TERMUX_PKG_CLANG" = "no" ]; then
-		export AS=${TERMUX_HOST_PLATFORM}-gcc
-		export CC=$TERMUX_HOST_PLATFORM-gcc
-		export CXX=$TERMUX_HOST_PLATFORM-g++
-		LDFLAGS+=" -specs=$TERMUX_SCRIPTDIR/termux.spec"
-		CFLAGS+=" -specs=$TERMUX_SCRIPTDIR/termux.spec"
-	else
-		export AS=${TERMUX_HOST_PLATFORM}-clang
-		export CC=$TERMUX_HOST_PLATFORM-clang
-		export CXX=$TERMUX_HOST_PLATFORM-clang++
-	fi
+	export AS=${TERMUX_HOST_PLATFORM}-clang
+	export CC=$TERMUX_HOST_PLATFORM-clang
+	export CXX=$TERMUX_HOST_PLATFORM-clang++
 
 	export AR=$TERMUX_HOST_PLATFORM-ar
 	export CPP=${TERMUX_HOST_PLATFORM}-cpp
@@ -590,9 +604,7 @@ termux_step_setup_toolchain() {
 		# "We recommend using the -mthumb compiler flag to force the generation of 16-bit Thumb-2 instructions".
 		# With r13 of the ndk ruby 2.4.0 segfaults when built on arm with clang without -mthumb.
 		CFLAGS+=" -march=armv7-a -mfpu=neon -mfloat-abi=softfp -mthumb"
-		if [ "$TERMUX_PKG_CLANG" != "no" ]; then
-			CFLAGS+=" -fno-integrated-as"
-		fi
+		CFLAGS+=" -fno-integrated-as"
 		LDFLAGS+=" -march=armv7-a"
 	elif [ "$TERMUX_ARCH" = "i686" ]; then
 		# From $NDK/docs/CPU-ARCH-ABIS.html:
@@ -608,17 +620,13 @@ termux_step_setup_toolchain() {
 	if [ -n "$TERMUX_DEBUG" ]; then
 		CFLAGS+=" -g3 -O1 -fstack-protector --param ssp-buffer-size=4 -D_FORTIFY_SOURCE=2"
 	else
-		if [ "$TERMUX_PKG_CLANG" = "no" ]; then
+		# -Oz seems good for clang, see https://github.com/android-ndk/ndk/issues/133.
+		# However, on arm it has a lot of issues such as #1520, #1680, #1765 and
+		# https://bugs.llvm.org/show_bug.cgi?id=35379, so use so use -Os there for now:
+		if [ $TERMUX_ARCH = arm ]; then
 			CFLAGS+=" -Os"
 		else
-			# -Oz seems good for clang, see https://github.com/android-ndk/ndk/issues/133.
-			# However, on arm it has a lot of issues such as #1520, #1680, #1765 and
-			# https://bugs.llvm.org/show_bug.cgi?id=35379, so use so use -Os there for now:
-			if [ $TERMUX_ARCH = arm ]; then
-				CFLAGS+=" -Os"
-			else
-				CFLAGS+=" -Oz"
-			fi
+			CFLAGS+=" -Oz"
 		fi
 	fi
 
@@ -957,6 +965,7 @@ termux_step_configure_cmake () {
 		-DCMAKE_SYSTEM_VERSION=$TERMUX_PKG_API_LEVEL \
 		-DCMAKE_SKIP_INSTALL_RPATH=ON \
 		-DCMAKE_USE_SYSTEM_LIBRARIES=True \
+		-DDOXYGEN_EXECUTABLE= \
 		-DBUILD_TESTING=OFF \
 		$TERMUX_PKG_EXTRA_CONFIGURE_ARGS $TOOLCHAIN_ARGS
 }
@@ -1016,6 +1025,12 @@ termux_step_make_install() {
 		else
 			make -j 1 ${TERMUX_PKG_EXTRA_MAKE_ARGS} ${TERMUX_PKG_MAKE_INSTALL_TARGET}
 		fi
+	elif test -f Cargo.toml; then
+		termux_setup_rust
+		cargo build --release --target $CARGO_TARGET_NAME
+		cargo install --force --target $CARGO_TARGET_NAME --root $TERMUX_PREFIX
+		# https://github.com/rust-lang/cargo/issues/3316:
+		rm $TERMUX_PREFIX/.crates.toml
 	fi
 }
 

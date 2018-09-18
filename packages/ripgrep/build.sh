@@ -1,33 +1,25 @@
 TERMUX_PKG_HOMEPAGE=https://github.com/BurntSushi/ripgrep
 TERMUX_PKG_DESCRIPTION="Search tool like grep and The Silver Searcher"
-TERMUX_PKG_VERSION=0.9.0
-TERMUX_PKG_SHA256=871a24ad29a4c5b6d82f6049156db2662e6a9820cca6f361547b8ab8bc1be7ae
+TERMUX_PKG_VERSION=0.10.0
+TERMUX_PKG_REVISION=1
+TERMUX_PKG_SHA256=a2a6eb7d33d75e64613c158e1ae450899b437e37f1bfbd54f713b011cd8cc31e
 TERMUX_PKG_SRCURL=https://github.com/BurntSushi/ripgrep/archive/$TERMUX_PKG_VERSION.tar.gz
 TERMUX_PKG_BUILD_IN_SRC=yes
 
-termux_step_make() {
-	# TODO: The below setup should be split up to allow more rust
-	# packages to be built.
-	local CARGO_TARGET_NAME=$TERMUX_ARCH-linux-android
-	if [ $TERMUX_ARCH = "arm" ]; then
-		CARGO_TARGET_NAME=armv7-linux-androideabi
-	fi
-
-	mkdir .cargo
-	cat <<-EOF > .cargo/config
-		[target.$CARGO_TARGET_NAME]
-		linker = "clang"
-	EOF
-
-	curl https://sh.rustup.rs -sSf > $TERMUX_PKG_TMPDIR/rustup.sh
-        sh $TERMUX_PKG_TMPDIR/rustup.sh -y
-	export PATH=$HOME/.cargo/bin:$PATH
-
-	rustup target add $CARGO_TARGET_NAME
-
-	cargo build --release --target=$CARGO_TARGET_NAME
-
-	cp target/$CARGO_TARGET_NAME/release/rg $TERMUX_PREFIX/bin/rg
+termux_step_post_make_install() {
+	# Install man page:
 	mkdir -p $TERMUX_PREFIX/share/man/man1/
 	cp `find . -name rg.1` $TERMUX_PREFIX/share/man/man1/
+
+	# Install bash completion script:
+	mkdir -p $TERMUX_PREFIX/share/bash-completion/completions/
+	cp `find . -name rg.bash` $TERMUX_PREFIX/share/bash-completion/completions/rg
+
+	# Install fish completion script:
+	mkdir -p $TERMUX_PREFIX/share/fish/completions/
+	cp `find . -name rg.fish` $TERMUX_PREFIX/share/fish/completions/
+
+	# Install zsh completion script:
+	mkdir -p $TERMUX_PREFIX/share/zsh/site-functions/
+	cp complete/_rg $TERMUX_PREFIX/share/zsh/site-functions/
 }
