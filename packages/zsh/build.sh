@@ -1,7 +1,7 @@
 TERMUX_PKG_HOMEPAGE=https://www.zsh.org
 TERMUX_PKG_DESCRIPTION="Shell with lots of features"
-TERMUX_PKG_VERSION=5.6
-TERMUX_PKG_SHA256=746b1fcb11e8d129d1454f9ca551448c8145b6bcb157116c12407c518880e6d6
+TERMUX_PKG_VERSION=5.6.2
+TERMUX_PKG_SHA256=a50bd66c0557e8eca3b8fa24e85d0de533e775d7a22df042da90488623752e9e
 TERMUX_PKG_SRCURL=https://fossies.org/linux/misc/zsh-${TERMUX_PKG_VERSION}.tar.xz
 # Remove hard link to bin/zsh as Android does not support hard links:
 TERMUX_PKG_RM_AFTER_INSTALL="bin/zsh-${TERMUX_PKG_VERSION}"
@@ -14,6 +14,7 @@ ac_cv_func_getpwuid=yes
 --enable-etcdir=$TERMUX_PREFIX/etc
 "
 TERMUX_PKG_CONFFILES="etc/zshrc"
+TERMUX_PKG_BUILD_IN_SRC=yes
 
 termux_step_post_configure () {
 	# INSTALL file: "For a non-dynamic zsh, the default is to compile the complete, compctl, zle,
@@ -26,8 +27,9 @@ termux_step_post_configure () {
 	# - The curses, socket and zprof modules was desired by BrainDamage on IRC (#termux).
 	# - The deltochar and mathfunc modules is used by grml-zshrc (https://github.com/termux/termux-packages/issues/494).
 	# - The system module is needed by zplug (https://github.com/termux/termux-packages/issues/659).
-	# - The zpty is needed by zsh-async (https://github.com/termux/termux-packages/issues/672).
-	for module in files regex curses zprof socket system deltochar mathfunc zpty pcre; do
+	# - The zpty module is needed by zsh-async (https://github.com/termux/termux-packages/issues/672).
+	# - The stat module is needed by zui (https://github.com/termux/termux-packages/issues/2829).
+	for module in files regex curses zprof socket system deltochar mathfunc zpty pcre stat; do
 		perl -p -i -e "s|${module}.mdd link=no|${module}.mdd link=static|" $TERMUX_PKG_BUILDDIR/config.modules
 	done
 }

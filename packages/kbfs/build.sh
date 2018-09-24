@@ -1,7 +1,7 @@
-TERMUX_PKG_HOMEPAGE=https://keybase.io
-TERMUX_PKG_DESCRIPTION="keybase kbfs"
-TERMUX_PKG_VERSION=2.5.0
-TERMUX_PKG_SHA256=0f9f785dfa95f4b93a24d18dff4d6a0a8e637139873370eb3f2a8c8d67505dd4
+TERMUX_PKG_HOMEPAGE=https://keybase.io/docs/kbfs
+TERMUX_PKG_DESCRIPTION="Keybase Filesystem"
+TERMUX_PKG_VERSION=2.6.0
+TERMUX_PKG_SHA256=acdb89f07d6523bb3112f9105ffd10419ab8a3d08db1cb8d5507cfb8202d85cf
 TERMUX_PKG_SRCURL=https://github.com/keybase/kbfs/archive/v${TERMUX_PKG_VERSION}.tar.gz
 
 termux_step_make_install() {
@@ -13,7 +13,9 @@ termux_step_make_install() {
 	ln -sf "$PWD" .gopath/src/github.com/keybase/kbfs
 	export GOPATH="$PWD/.gopath"
 
-	go build -v -o git-remote-keybase github.com/keybase/kbfs/kbfsgit/git-remote-keybase
+	go build -v -tags 'production' -o git-remote-keybase github.com/keybase/kbfs/kbfsgit/git-remote-keybase
+	go build -v -tags 'production' -o kbfsfusebin github.com/keybase/kbfs/kbfsfuse
 
 	cp git-remote-keybase $TERMUX_PREFIX/bin/git-remote-keybase
+	cp kbfsfusebin $TERMUX_PREFIX/bin/kbfsfuse
 }

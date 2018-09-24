@@ -1,16 +1,17 @@
 TERMUX_PKG_HOMEPAGE=https://gstreamer.freedesktop.org/
 TERMUX_PKG_DESCRIPTION="GStreamer Bad Plug-ins"
-TERMUX_PKG_VERSION=1.14.2
-TERMUX_PKG_SHA256=34fab7da70994465a64468330b2168a4a0ed90a7de7e4c499b6d127c6c1b1eaf
+TERMUX_PKG_VERSION=1.14.3
+TERMUX_PKG_SHA256=b2224e5d9c1b85ad51233f6135524bb9e16a9172d395edc79c73b89094659fd5
 TERMUX_PKG_SRCURL=https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-${TERMUX_PKG_VERSION}.tar.xz
 TERMUX_PKG_BUILD_IN_SRC=yes
-TERMUX_PKG_DEPENDS="gst-plugins-base, libx264, libbz2, libpng, librsvg, libcurl, libx265, libsndfile, openjpeg, openal-soft, littlecms"
+TERMUX_PKG_DEPENDS="gst-plugins-base, libbz2, libcurl, libpng, librsvg, libssh2, libsndfile, libx264, libx265, littlecms, openal-soft, openjpeg"
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
---disable-tests
---disable-examples
 --disable-android_media
---disable-zbar
+--disable-examples
 --disable-rtmp
+--disable-tests
+--disable-zbar
+--disable-webp
 --with-hls-crypto=openssl
 "
 TERMUX_PKG_RM_AFTER_INSTALL="share/gtk-doc/"
