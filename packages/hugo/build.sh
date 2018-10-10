@@ -11,7 +11,7 @@ termux_step_make_install(){
   export CGO_LDFLAGS="-L$TERMUX_PREFIX/lib"
   export CGO_ENABLED=1
   
-  BUILD_DATE=`date -u "+%Y-%m-%dT%H:%M:%S"`
+  BUILD_DATE=`date -u "+%Y-%m-%dT%H:%M:%S"Z`
   GO_LDFLAGS="-w -s -X github.com/gohugoio/hugo/hugolib.BuildDate=$BUILD_DATE"
   
   cd $TERMUX_PKG_SRCDIR
