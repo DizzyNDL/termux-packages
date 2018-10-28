@@ -3,6 +3,7 @@ set -e -u
 
 PACKAGES=""
 PACKAGES+=" asciidoc"
+PACKAGES+=" asciidoctor" # Used by weechat for man pages.
 PACKAGES+=" automake"
 PACKAGES+=" bison"
 PACKAGES+=" curl" # Used for fetching sources.
@@ -19,7 +20,7 @@ PACKAGES+=" libglib2.0-dev" # Provides 'glib-genmarshal' which the glib build us
 PACKAGES+=" libtool-bin"
 PACKAGES+=" libncurses5-dev" # Used by mariadb for host build part.
 PACKAGES+=" lzip"
-PACKAGES+=" python3.6"
+PACKAGES+=" python3.7"
 PACKAGES+=" tar"
 PACKAGES+=" unzip"
 PACKAGES+=" m4"
@@ -32,7 +33,6 @@ PACKAGES+=" ruby" # Needed to build ruby.
 PACKAGES+=" scons"
 PACKAGES+=" texinfo"
 PACKAGES+=" xmlto"
-PACKAGES+=" xutils-dev" # Provides 'makedepend' which the openssl build uses.
 PACKAGES+=" libexpat1-dev" # Needed by ghostscript
 PACKAGES+=" libjpeg-dev" # Needed by ghostscript
 PACKAGES+=" gawk" # Needed by apr-util
