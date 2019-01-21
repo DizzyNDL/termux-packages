@@ -1,29 +1,40 @@
 TERMUX_PKG_HOMEPAGE=https://gohugo.io/
-TERMUX_PKG_DESCRIPTION="Configurable static site generator"
-TERMUX_PKG_MAINTAINER="Florian Grässle <hallo@holehan.org>"
+TERMUX_PKG_DESCRIPTION="A fast and flexible static site generator"
 TERMUX_PKG_VERSION=0.53
+TERMUX_PKG_REVISION=1
+TERMUX_PKG_SRCURL=https://github.com/gohugoio/hugo/archive/v$TERMUX_PKG_VERSION.tar.gz
 TERMUX_PKG_SHA256=48e65a33d3b10527101d13c354538379d9df698e5c38f60f4660386f4232e65c
-TERMUX_PKG_SRCURL=https://github.com/gohugoio/hugo/archive/v${TERMUX_PKG_VERSION}.tar.gz
 
-termux_step_make_install(){
-  termux_setup_golang
+termux_step_make() {
+	termux_setup_golang
+	export GOPATH=$TERMUX_PKG_BUILDDIR
+	export CGO_LDFLAGS="-L$TERMUX_PREFIX/lib"
 
-  export CGO_LDFLAGS="-L$TERMUX_PREFIX/lib"
-  export CGO_ENABLED=1
-  
-  BUILD_DATE=`date -u "+%Y-%m-%dT%H:%M:%S"Z`
-  GO_LDFLAGS="-w -s -X github.com/gohugoio/hugo/hugolib.BuildDate=$BUILD_DATE"
-  
-  cd $TERMUX_PKG_SRCDIR
-  
-  go build -ldflags="$GO_LDFLAGS" -o $TERMUX_PREFIX/bin/hugo -tags extended main.go
+	cd $TERMUX_PKG_SRCDIR
+	go build \
+		-o "$TERMUX_PREFIX/bin/hugo" \
+		-tags extended \
+		main.go
 
-  termux_download https://github.com/gohugoio/hugo/releases/download/v${TERMUX_PKG_VERSION}/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz \
-    $TERMUX_PKG_CACHEDIR/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz \
-    2cfcdc3a69f23a48a2d1f1042bfac800266c887551801c7a40231b0ba43f5eff
-  tar xf $TERMUX_PKG_CACHEDIR/hugo_extended_${TERMUX_PKG_VERSION}_Linux-64bit.tar.gz -C $TERMUX_PKG_CACHEDIR/ hugo
+	# Building for host to generate manpages and completion.
+	chmod 700 -R $GOPATH/pkg && rm -rf $GOPATH/pkg
+	unset GOOS GOARCH CGO_LDFLAGS
+	unset CC CXX CFLAGS CXXFLAGS LDFLAGS
+	go build \
+		-o "$TERMUX_PKG_BUILDDIR/hugo" \
+		-tags extended \
+		main.go
+}
 
-  mkdir -p $TERMUX_PREFIX/{etc/bash_completion.d,share/man/man1}
-  $TERMUX_PKG_CACHEDIR/hugo gen autocomplete --completionfile=$TERMUX_PREFIX/etc/bash_completion.d/hugo.sh
-  $TERMUX_PKG_CACHEDIR/hugo gen man --dir=$TERMUX_PREFIX/share/man/man1/
+termux_step_make_install() {
+	mkdir -p $TERMUX_PREFIX/share/{bash-completion/completions,man/man1}
+
+	$TERMUX_PKG_BUILDDIR/hugo gen autocomplete \
+		--completionfile=$TERMUX_PREFIX/share/bash-completion/completions/hugo
+	$TERMUX_PKG_BUILDDIR/hugo gen man \
+		--dir=$TERMUX_PREFIX/share/man/man1/
+
+	# Seems that some files became RO-only
+	# and should be manually removed.
+	chmod 700 -R $GOPATH/pkg && rm -rf $GOPATH/pkg
 }
